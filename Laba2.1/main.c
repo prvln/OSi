@@ -10,8 +10,11 @@ int main(){
     int fd;
     char fifoPipa[20] = "/tmp/fifoPipa.txt";
     char format[80] = "I'm [%i], a beloved parent of [%i], today is %s";
-    if (mkfifo(fifoPipa, 0666) == -1) printf("fFf");
-
+    if (mkfifo(fifoPipa, 0666) == -1)
+    {
+        printf("Error creating FIFO file");
+        return 1;
+    }
     time_t seconds;
     pid_t childsPID = fork();
 
