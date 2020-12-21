@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
@@ -22,17 +24,15 @@ int main(){
         const int ARRAY_SIZE = 50;
 
         char *ARRAY_POINTER;
-        char shmName[13] = "OUR_NOT_YOUR";
         char format[25] = "Hi, I'm [%i], today is %s";
         char message[ARRAY_SIZE];
 
-        if ( (shm = shm_open(shmName, O_CREAT | O_RDWR, 0777)) == -1 ) {
+        if ( (shm = shmget(1585, 1, IPC_CREAT | 0777)) == -1 ) {
             perror("shm_open");
             return 1;
         }
 
-        ftruncate(shm, ARRAY_SIZE);
-        ARRAY_POINTER = mmap(0, ARRAY_SIZE, PROT_WRITE, MAP_SHARED, shm, 0);
+        ARRAY_POINTER = shmat(shm, NULL, 0);
 
         while(1){
             time_t seconds = time(NULL);        

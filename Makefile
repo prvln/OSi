@@ -2,10 +2,10 @@ all:
 	gcc ./Laba1/main.c -o ./Laba1/main.out
 	gcc ./Laba2/main.c -o ./Laba2/main.out
 	gcc ./Laba2.1/main.c -o ./Laba2.1/main.out
-	gcc ./Laba3/broker.c -o ./Laba3/broker.out -lrt
-	gcc ./Laba3/subscriber.c -o ./Laba3/subscriber.out -lrt
-	gcc ./Laba4/broker.c -o ./Laba4/broker.out -lrt -lpthread
-	gcc ./Laba4/subscriber.c -o ./Laba4/subscriber.out -lrt -lpthread
+	gcc ./Laba3/broker.c -o ./Laba3/broker.out
+	gcc ./Laba3/subscriber.c -o ./Laba3/subscriber.out
+	gcc ./Laba4/broker.c -o ./Laba4/broker.out
+	gcc ./Laba4/subscriber.c -o ./Laba4/subscriber.out
 
 check: 
 	./Laba1/main.out

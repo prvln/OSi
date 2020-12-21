@@ -3,27 +3,31 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/file.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <errno.h>
 #include <string.h>
 #include <time.h>
-
 int main(){
     const int ARRAY_SIZE = 55;
     int shm;
 
     char timeChar[26] = {0};
-    char shmName[13] = "OUR_NOT_YOUR";
     char format[111] = "";
+    char *ARRAY_POINTER;
+
     memset(format, 0, 111);
     memcpy(format, "\nHi, I'm [%i], now is %s here is message that I found:\n\t", 56);
-    char *ARRAY_POINTER;
 
     time_t seconds = time(NULL);   
 
-    if ( (shm = shm_open(shmName, O_RDONLY, 0777)) == -1 ) {
-        perror("shm_open");
-        return 1;
-    }
-    ARRAY_POINTER = mmap(0, ARRAY_SIZE, PROT_READ, MAP_SHARED, shm, 0);
+    if ( (shm = shmget(1585, 1, IPC_CREAT | 0777)) == -1 ) {
+            perror("shm_open");
+            return 1;
+        }
+
+    ARRAY_POINTER = shmat(shm, NULL, 0);
 
     
     while(1){

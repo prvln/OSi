@@ -4,58 +4,68 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/file.h>
-#include <semaphore.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
 
 int main(){
+    struct sembuf semLock = {0, -1, 0};
+    struct sembuf semUnlock = {0, 1, 0};
+
     const int ARRAY_SIZE = 50;
-    clock_t start, stop, delay;
-    sem_t* sem;
-    int shm;
+    clock_t start, stop;
+    int shm, sem;
 
     char timeChar[26] = {0};
-    char shmName[7] = "SEM_SHM";
-    char semName[7] = "SEM_QUE";
-    char format[128] = "";
+    char semName[7] = "SEM_QUE";    
+    char format[111] = "";
     char *ARRAY_POINTER;
 
-    memset(format, 0, 128);
-    memcpy(format, "\nHi, I'm [%i], now is %i here is message that I found:\n\t", 73);
+    memset(format, 0, 111);
+    memcpy(format, "\nHi, I'm [%i], now is %i here is message that I found:\n\t", 56);
 
     time_t seconds = time(NULL);   
 
-    if ( (shm = shm_open(shmName, O_RDWR, 0777)) == -1 ) {
-        perror("shm_open");
-        return 1;
-    }
+    if ( (shm = shmget(9876, 1, IPC_CREAT | 0777)) == -1 ) {
+            perror("shm_open");
+            return 1;
+        }
 
-    if ( (sem = sem_open(semName, 0)) == SEM_FAILED ) {
-        perror("sem_open error");
-        return 1;
-    }
+    ARRAY_POINTER = shmat(shm, NULL, 0);
 
-    ARRAY_POINTER = mmap(0, ARRAY_SIZE, PROT_READ, MAP_SHARED, shm, 0);
+    if ((sem = semget(1984, 1, 0)) == -1) {
+            perror("semget");
+            return 1;
+    }
 
     while(1){
+        
+        start = clock();
+
+        if (semop(sem, &semLock, 1) == -1) {
+                perror("semop");
+                return 1;
+        }
+
+        stop = clock();
+        printf("\nTime elapsed: %f ", (double) (stop - start) / CLOCKS_PER_SEC);
+
         seconds = time(NULL);
         memcpy(timeChar, asctime(localtime(&seconds)), 26);      
         timeChar[24] = '\0';
 
-        start = clock();
-        if(sem_wait(sem) != -1){
-            stop = clock();
-            printf("\nTime elapsed: %ims", (stop - start));
-            memcpy(&format[56], ARRAY_POINTER, ARRAY_SIZE);
-            printf(format, getpid(), seconds);
-            fflush(stdout);
-            sem_post(sem);
-        }else{
-            perror("Semaphore broken");
-            return 1;
+        memcpy(&format[56], ARRAY_POINTER, ARRAY_SIZE);
+        printf(format, getpid(), timeChar);
+        fflush(stdout);
+
+        if (semop(sem, &semUnlock, 1) == -1) {
+                perror("semop");
+                return 1;
         }
-        //sleep(1);
+        sleep(1);
     }
     return 0;
 }
