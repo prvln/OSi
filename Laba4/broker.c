@@ -71,7 +71,7 @@ int main(){
             time_t seconds = time(NULL);
             seconds = time(NULL);
             memcpy(timeChar, asctime(localtime(&seconds)), 26);      
-            timeChar[24] = '\0';        
+            timeChar[24] = ' ';        
             memset(message, 0, ARRAY_SIZE);
             sprintf(message, format, getpid(), timeChar);
             
