@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/file.h>
@@ -9,16 +10,19 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <signal.h>
-#include <string.h>
 #include <errno.h>
+#include <string.h>
 #include <time.h>
+
+#define ARRAY_SIZE 46
+#define FILE_PATH "./broker.c"
+
 int shm, sem;
 
 void shutdown(){
     printf("[%x] Atexit has been started\n", getpid());
-    char semaphoreSeed[4] = "WOOF";
     struct sembuf semUnlock = {0, 1, 0};
-    if (semop(ftok(semaphoreSeed, 21), &semUnlock, 1) == -1) {
+    if (semop(ftok(FILE_PATH, 21), &semUnlock, 1) == -1) {
                 perror("semop");
         }
 }
@@ -32,36 +36,48 @@ int main(){
     struct sembuf semLock = {0, -1, 0};
     struct sembuf semUnlock = {0, 1, 0};
 
-    const int ARRAY_SIZE = 55;
     key_t shmKey, semKey;
     clock_t start, stop;
     time_t seconds;
-    
 
-    char semaphoreSeed[4] = "WOOF";
-    char sharedMemorySeed[23] = "WHO LET THE DOGS OUT?";
-    char timeChar[26] = {0};
-    char semName[7] = "SEM_QUE";    
-    char format[111] = "";
-    char *ARRAY_POINTER;
+    int errorHandler = 0;
 
-    int error = atexit(shutdown);
-    if (error) printf("[%x] atexit returned error: %i \n\n", getpid(), error);
-    signal(SIGINT, signalHandler);
+    char timeCharArray[25] = {0};
+    char *ARRAY_POINTER;  
+    char format[90] = {0};
 
-    shmKey = ftok(sharedMemorySeed, 20);
-    if ( (shm = shmget(shmKey, ARRAY_SIZE, IPC_CREAT | 0666)) == -1 ) 
-    {
-        perror("shm_open");
+    memcpy(format, "\n[%x] This message was written in %24s\t", 40);
+
+    if ( (errorHandler = atexit(shutdown)) == -1){
+        perror("Atexit failed to initialize shutdown function");
+        return 1;
+    }
+    if ( (errorHandler = (uintptr_t)signal(SIGINT, signalHandler)) == -1){
+        perror("Signal failed to initialize signalHandler function");
         return 1;
     }
 
-    ARRAY_POINTER = shmat(shm, NULL, 0);
+    if ( (shmKey = ftok(FILE_PATH, 10)) == -1){
+        perror("Shared memory ftok failed");
+        return 1;
+    }
+    if ( (shm = shmget(shmKey, ARRAY_SIZE, 0666)) == -1 ){
+        perror("Shmget failed");
+        return 1;
+    }
+    if ( (uintptr_t)(ARRAY_POINTER = shmat(shm, NULL, 0)) == -1){
+        perror("Shmat failed");
+        return 1;
+    }
 
-    semKey = ftok(semaphoreSeed, 21);
+
+    if ( (semKey = ftok(FILE_PATH, 21)) == -1){
+        perror("Semaphore ftok failed");
+        return 1;
+    }
     if ((sem = semget(semKey, 1, 0)) == -1) {
-            perror("semget");
-            return 1;
+        perror("Semget failed");
+        return 1;
     }
 
     while(1){
@@ -74,14 +90,12 @@ int main(){
         }
 
         stop = clock();
-        printf("\nTime elapsed: %f ", (double) (stop - start) / CLOCKS_PER_SEC);
+        printf("\nWaited for: %f ", (double) (stop - start) / CLOCKS_PER_SEC);
 
         seconds = time(NULL);
-        memcpy(timeChar, asctime(localtime(&seconds)), 26);      
-        timeChar[24] = '\0';
-
-        memcpy(&format[56], ARRAY_POINTER, ARRAY_SIZE);
-        printf(format, getpid(), timeChar);
+        memcpy(timeCharArray, asctime(localtime(&seconds)), 25);
+        memcpy(&format[39], ARRAY_POINTER, ARRAY_SIZE);
+        printf(format, getpid(), timeCharArray);
         fflush(stdout);
 
         if (semop(sem, &semUnlock, 1) == -1) {
