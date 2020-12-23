@@ -30,7 +30,7 @@ int main(){
     int rc = flock(pid_file, LOCK_EX | LOCK_NB);
     if(rc) {
         if(EWOULDBLOCK == errno){
-            fprintf(stderr, "%s", "Another instance of broker is running!\nExit");
+            perror("Another instance of broker is running!\nExit");
             return 0;
         }   
     }
