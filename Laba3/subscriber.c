@@ -10,19 +10,20 @@
 #include <string.h>
 #include <time.h>
 int main(){
-    const int ARRAY_SIZE = 55;
-    int shm;
-
+    char sharedMemorySeed[23] = "I HAVE THE HIGH GROUND";
+    const int ARRAY_SIZE = 50;
     char timeChar[26] = {0};
     char format[111] = "";
     char *ARRAY_POINTER;
+    time_t seconds;
+    key_t shmKey;
+    int shm;
 
     memset(format, 0, 111);
     memcpy(format, "\nHi, I'm [%i], now is %s here is message that I found:\n\t", 56);
 
-    time_t seconds = time(NULL);   
-
-    if ( (shm = shmget(1585, 1, IPC_CREAT | 0777)) == -1 ) {
+    shmKey = ftok(sharedMemorySeed, 42);
+    if ( (shm = shmget(shmKey, ARRAY_SIZE, IPC_CREAT | 0666)) == -1 ) {
             perror("shm_open");
             return 1;
         }

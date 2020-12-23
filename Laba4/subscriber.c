@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -7,36 +8,58 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include <errno.h>
+#include <signal.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
+int shm, sem;
+
+void shutdown(){
+    printf("[%x] Atexit has been started\n", getpid());
+    char semaphoreSeed[4] = "WOOF";
+    struct sembuf semUnlock = {0, 1, 0};
+    if (semop(ftok(semaphoreSeed, 21), &semUnlock, 1) == -1) {
+                perror("semop");
+        }
+}
+
+void signalHandler(int signum) {
+   printf("\n[%x] Caught signal: %i\n", signum);
+   exit(signum);
+}
 
 int main(){
     struct sembuf semLock = {0, -1, 0};
     struct sembuf semUnlock = {0, 1, 0};
 
-    const int ARRAY_SIZE = 50;
+    const int ARRAY_SIZE = 55;
+    key_t shmKey, semKey;
     clock_t start, stop;
-    int shm, sem;
+    time_t seconds;
+    
 
+    char semaphoreSeed[4] = "WOOF";
+    char sharedMemorySeed[23] = "WHO LET THE DOGS OUT?";
     char timeChar[26] = {0};
     char semName[7] = "SEM_QUE";    
     char format[111] = "";
     char *ARRAY_POINTER;
 
-    memset(format, 0, 111);
-    memcpy(format, "\nHi, I'm [%i], now is %i here is message that I found:\n\t", 56);
+    int error = atexit(shutdown);
+    if (error) printf("[%x] atexit returned error: %i \n\n", getpid(), error);
+    signal(SIGINT, signalHandler);
 
-    time_t seconds = time(NULL);   
-
-    if ( (shm = shmget(9876, 1, IPC_CREAT | 0777)) == -1 ) {
-            perror("shm_open");
-            return 1;
-        }
+    shmKey = ftok(sharedMemorySeed, 20);
+    if ( (shm = shmget(shmKey, ARRAY_SIZE, IPC_CREAT | 0666)) == -1 ) 
+    {
+        perror("shm_open");
+        return 1;
+    }
 
     ARRAY_POINTER = shmat(shm, NULL, 0);
 
-    if ((sem = semget(1984, 1, 0)) == -1) {
+    semKey = ftok(semaphoreSeed, 21);
+    if ((sem = semget(semKey, 1, 0)) == -1) {
             perror("semget");
             return 1;
     }

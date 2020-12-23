@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -6,36 +7,56 @@
 #include <sys/file.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <signal.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+
+int shm;
+
+void shutdown(){
+    printf("[%x] Atexit has been started\n", getpid());
+    shmctl(shm, IPC_RMID, NULL);
+}
+
+void signalHandler(int signum) {
+   printf("\n[%x] Caught signal: %i\n", signum);
+   exit(signum);
+}
 
 int main(){
     int pid_file = open("/tmp/U_R_THE_ONLY_ONE.pid", O_CREAT | O_RDWR, 0666);
     int rc = flock(pid_file, LOCK_EX | LOCK_NB);
     if(rc) {
         if(EWOULDBLOCK == errno){
-            fprintf(stderr, "%s", "Another instance of broker is running!\nExit");
+            fprintf(stderr, "%s", "[%x] Another instance of broker is running!\nExit", getpid());
             return 0;
         }   
     }
     else {
-        int shm;
         const int ARRAY_SIZE = 50;
-
-        char *ARRAY_POINTER;
-        char format[25] = "Hi, I'm [%i], today is %s";
+        char sharedMemorySeed[23] = "I HAVE THE HIGH GROUND";
         char message[ARRAY_SIZE];
+        char *ARRAY_POINTER;
+        char format[25] = "[%i] Hi, today is %s";
+        time_t seconds;
+        key_t shmKey;
 
-        if ( (shm = shmget(1585, 1, IPC_CREAT | 0777)) == -1 ) {
+        int error = atexit(shutdown);
+        if (error) printf("[%x] atexit returned error: %i \n\n", getpid(), error);
+        signal(SIGINT, signalHandler);
+
+
+        shmKey = ftok(sharedMemorySeed, 42);
+        if ( (shm = shmget(shmKey, ARRAY_SIZE, IPC_CREAT | 0666)) == -1 ) {
             perror("shm_open");
             return 1;
         }
-
         ARRAY_POINTER = shmat(shm, NULL, 0);
 
+
         while(1){
-            time_t seconds = time(NULL);        
+            seconds = time(NULL);        
             memset(message, 0, ARRAY_SIZE);
             sprintf(message, format, getpid(), asctime(localtime(&seconds)));
             
