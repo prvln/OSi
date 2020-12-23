@@ -24,7 +24,7 @@ void shutdown(){
 }
 
 void signalHandler(int signum) {
-   printf("\n[%x] Caught signal: %i\n", signum);
+   printf("\n[%x] Caught signal: %i\n", getpid(), signum);
    exit(signum);
 }
 
