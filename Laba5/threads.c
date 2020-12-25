@@ -46,7 +46,7 @@ void* reader(void *args) {
 
     char filename[SHARED_ARRAY_SIZE] = {0};
     toArray(tid, &filename[0]);
-    sprintf(filename, "%4.6s.txt", filename);
+    sprintf(filename, "%4.5s.txt", filename);
 
     FILE *filePTR;
     if ( (filePTR = fopen(filename,"w")) == NULL){
