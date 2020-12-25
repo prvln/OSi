@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/syscall.h>
 
 #define NUM_OF_THREADS 11
 #define SHARED_ARRAY_SIZE 10
@@ -41,7 +42,7 @@ void* reader(void *args) {
     struct timespec tr; struct timespec tw = {0,SLEEP_DELAY_IN_NANOSECONDS};
     clock_t start, stop;
     int localInt = 0;
-    int tid = gettid();
+    pid_t tid = syscall(SYS_gettid);
 
     char filename[SHARED_ARRAY_SIZE] = {0};
     toArray(tid, &filename[0]);
