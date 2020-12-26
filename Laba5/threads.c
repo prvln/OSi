@@ -7,7 +7,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/types.h>
 #include <sys/syscall.h>
+
 
 #define NUM_OF_THREADS 11
 #define SHARED_ARRAY_SIZE 10
@@ -42,25 +44,16 @@ void* reader(void *args) {
     struct timespec tr; struct timespec tw = {0,SLEEP_DELAY_IN_NANOSECONDS};
     clock_t start, stop;
     int localInt = 0;
-    pid_t tid = syscall(SYS_gettid);
 
-    char filename[SHARED_ARRAY_SIZE] = {0};
-    toArray(tid, &filename[0]);
-    sprintf(filename, "%4.5s.txt", filename);
+    pthread_t tid = pthread_self();
 
-    FILE *filePTR;
-    if ( (filePTR = fopen(filename,"w")) == NULL){
-        char * errorMessage = "[%i] failed to create file: \"%8.10s\"";
-        filePTR = stdout;
-    }
-    
     while(1){
         start = clock();
         pthread_mutex_lock(&mutex);
             stop = clock();
             localInt = atoi(&sharedArray[0]);
-            fprintf(filePTR, "[%d] - tid, waited for: %fs array: %i\n", tid,(double) (stop - start) / CLOCKS_PER_SEC , localInt);
-            fflush(filePTR);
+            fprintf(stdout, "[%u] - tid, waited for: %fs array: %i\n", tid, (double) (stop - start) / CLOCKS_PER_SEC , localInt);
+            fflush(stdout);
         pthread_mutex_unlock(&mutex);
         nanosleep (&tw, &tr);
     }
@@ -97,26 +90,21 @@ void* writer(void *args) {
  
 int main() {
     int errorHandler = 0;
-    size_t i;
+    int i;
 
     if ( (errorHandler = (uintptr_t)signal(SIGINT, signalHandler)) == -1){
             perror("Signal failed to initialize signalHandler function");
             return 1;
     }
 
-    printf("\n-->WARNING<--\nThis program will create %i .txt files that will quickly expand their size", NUM_OF_THREADS - 1);
-    printf("\nDO NOT let the program live for a long time");
-    printf("\nHARDLY recommend not to set SLEEP_DELAY_IN_NANOSECONDS to value less than 1 million");
-    printf("\nBy pressing any key you accept your responsibility for any actions from now on");
-
-    getchar();
-
     pthread_mutex_init(&mutex, NULL);
 
     pthread_create(&threads[0], NULL, writer, NULL);
 
+    int *arg = malloc(sizeof(*arg));
     for (i = 1; i < NUM_OF_THREADS; i++) {
-        pthread_create(&threads[i], NULL, reader, NULL);
+        *arg = i;
+        pthread_create(&threads[i], NULL, reader, arg);
     }
     
     for (i = 0; i < NUM_OF_THREADS; i++) {
