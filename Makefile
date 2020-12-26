@@ -7,6 +7,8 @@ all:
 	gcc ./Laba4/broker.c -o ./Laba4/broker.out
 	gcc ./Laba4/subscriber.c -o ./Laba4/subscriber.out
 	gcc ./Laba5/threads.c -lpthread -lm -o ./Laba5/threads.out 
+	gcc ./Laba6/threads.c -lpthread -lm -o ./Laba6/threads.out 
+	gcc ./Laba7/threads.c -lpthread -lm -o ./Laba7/threads.out 
 
 check: 
 	./Laba1/main.out
