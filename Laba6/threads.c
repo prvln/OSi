@@ -51,7 +51,7 @@ void* reader(void *args) {
         pthread_rwlock_rdlock(&locker);
             stop = clock();
             localInt = atoi(&sharedArray[0]);
-            fprintf(stdout, "[%u] - tid, waited for: %fs array: %i\n", tid, (double) (stop - start) / CLOCKS_PER_SEC , localInt);
+            fprintf(stdout, "[%u] - tid, waited for: %fs array: %i\n", (unsigned int)tid, (double) (stop - start) / CLOCKS_PER_SEC , localInt);
             fflush(stdout);
         pthread_rwlock_unlock(&locker);
         nanosleep (&tw, &tr);
