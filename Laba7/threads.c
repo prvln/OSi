@@ -78,11 +78,8 @@ void* writer(void *args) {
             local = atoi(&localBuffer[0]);
             printf("write %i\n", ++local);
             toArray(local, &localBuffer[0]);
-            if(tw.tv_nsec > 1000000000){
-                pthread_cond_broadcast(&literally_variable);
-            }
-
             memcpy(&sharedArray, &localBuffer[0], SHARED_ARRAY_SIZE);
+            pthread_cond_broadcast(&literally_variable);
 
             nanosleep (&tw, &tr); //wait until release memory
         pthread_mutex_unlock(&mutex);
