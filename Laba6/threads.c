@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
+#define __USE_UNIX98 1
 
 #define NUM_OF_THREADS 11
 #define SHARED_ARRAY_SIZE 10
@@ -17,14 +18,14 @@
  
 char sharedArray[SHARED_ARRAY_SIZE] = {0};
 pthread_t threads[NUM_OF_THREADS];
-pthread_cond_t literally_variable;
+pthread_rwlock_t  *locker;
 
 void signalHandler(int signum) {
     printf("\n[%x] Caught signal: %i\n", getpid(), signum);
     for(int i = 0; i < NUM_OF_THREADS; i++){
         pthread_cancel(threads[i]);
     }
-    pthread_cond_destroy(&literally_variable);
+    pthread_rwlock_destroy(&locker);
     exit(signum);
 }
 
@@ -47,7 +48,7 @@ void* reader(void *args) {
 
     while(1){
         start = clock();
-        pthread_cond_wait(&literally_variable);
+        pthread_rwlock_rdlock(&locker);
             stop = clock();
             localInt = atoi(&sharedArray[0]);
             fprintf(stdout, "[%u] - tid, waited for: %fs array: %i\n", tid, (double) (stop - start) / CLOCKS_PER_SEC , localInt);
@@ -96,7 +97,7 @@ int main() {
             return 1;
     }
 
-    pthread_cond_init(&literally_variable, NULL);
+    pthread_rwlock_init(&locker, NULL);
 
     pthread_create(&threads[0], NULL, writer, NULL);
 
@@ -109,6 +110,6 @@ int main() {
     for (i = 0; i < NUM_OF_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    pthread_cond_destroy(&literally_variable);
+    pthread_cond_destroy(&locker);
     return 0;
 }
