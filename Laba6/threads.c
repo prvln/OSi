@@ -18,7 +18,7 @@
  
 char sharedArray[SHARED_ARRAY_SIZE] = {0};
 pthread_t threads[NUM_OF_THREADS];
-pthread_rwlock_t  *locker;
+pthread_rwlock_t  locker;
 
 void signalHandler(int signum) {
     printf("\n[%x] Caught signal: %i\n", getpid(), signum);
@@ -110,6 +110,6 @@ int main() {
     for (i = 0; i < NUM_OF_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    pthread_cond_destroy(&locker);
+    pthread_rwlock_destroy(&locker);
     return 0;
 }
